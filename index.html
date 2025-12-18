@@ -245,8 +245,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📋 YOUWILLSEE.HOUSE</h1>
-            <p>Submit invoice | ONLY ADMIN</p>
+            <h1>📋 Invoice Form</h1>
+            <p>Submit invoice data to Google Sheet</p>
         </div>
 
         <div class="form-content">
@@ -409,15 +409,28 @@
         const invoiceDateInput = document.getElementById('invoiceDate');
         const noInvoiceInput = document.getElementById('noInvoice');
 
-        invoiceDateInput.addEventListener('change', function() {
+        invoiceDateInput.addEventListener('change', async function() {
             const date = new Date(this.value);
             const year = String(date.getFullYear()).slice(-2);
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
+            const dateFormat = `${year}/${month}/${day}`;
             
-            const previewInvoice = `INV-xxx-${year}/${month}/${day}`;
-            noInvoiceInput.value = previewInvoice;
-            noInvoiceInput.style.color = '#3498db';
+            // Get next invoice number from Google Sheet
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL + '?action=getNextNumber&date=' + this.value);
+                const result = await response.json();
+                const nextNumber = result.nextNumber || '001';
+                
+                const previewInvoice = `INV-${nextNumber}-${dateFormat}`;
+                noInvoiceInput.value = previewInvoice;
+                noInvoiceInput.style.color = '#3498db';
+            } catch (error) {
+                // Fallback jika tidak bisa fetch
+                const previewInvoice = `INV-001-${dateFormat}`;
+                noInvoiceInput.value = previewInvoice;
+                noInvoiceInput.style.color = '#3498db';
+            }
         });
 
         form.addEventListener('submit', async (e) => {
