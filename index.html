@@ -18,6 +18,114 @@
             padding: 20px;
         }
 
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+            animation: slideIn 0.5s;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: #666;
+        }
+
+        .login-form .form-group {
+            margin-bottom: 20px;
+        }
+
+        .login-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        .main-app {
+            display: none;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            margin-left: 10px;
+        }
+
+        .logout-btn:hover {
+            background: white;
+            color: #667eea;
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -438,6 +546,32 @@
     </style>
 </head>
 <body>
+    <!-- Login Screen -->
+    <div class="login-container" id="loginContainer">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>🔐 Login</h1>
+                <p>Timeline Kerja</p>
+            </div>
+            <div class="error-message" id="errorMessage">
+                Username atau password salah!
+            </div>
+            <form class="login-form" onsubmit="login(event)">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username" placeholder="Masukkan username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" placeholder="Masukkan password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="login-btn">🚀 Masuk</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div class="main-app" id="mainApp">
     <div class="container">
         <div class="header">
             <h1>📅 Timeline Kerja</h1>
@@ -445,6 +579,7 @@
                 <button onclick="previousMonth()">← Bulan Sebelumnya</button>
                 <span class="current-month" id="currentMonth"></span>
                 <button onclick="nextMonth()">Bulan Berikutnya →</button>
+                <button class="logout-btn" onclick="logout()">🚪 Logout</button>
             </div>
         </div>
 
@@ -462,6 +597,7 @@
                 <div class="recap-stats" id="recapStats"></div>
             </div>
         </div>
+    </div>
     </div>
 
     <div class="modal" id="activityModal">
@@ -497,6 +633,57 @@
     </div>
 
     <script>
+        // Login credentials
+        const VALID_USERNAME = 'uwillsee';
+        const VALID_PASSWORD = 'uws123';
+
+        // Check login status on page load
+        function checkLoginStatus() {
+            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+            if (isLoggedIn === 'true') {
+                showMainApp();
+            } else {
+                showLoginScreen();
+            }
+        }
+
+        function login(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                showMainApp();
+                document.getElementById('errorMessage').style.display = 'none';
+            } else {
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('password').value = '';
+            }
+        }
+
+        function logout() {
+            if (confirm('Yakin ingin logout?')) {
+                sessionStorage.removeItem('isLoggedIn');
+                showLoginScreen();
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            }
+        }
+
+        function showLoginScreen() {
+            document.getElementById('loginContainer').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+        }
+
+        function showMainApp() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            renderCalendar();
+        }
+
+        // Calendar and activity management code
         let currentDate = new Date();
         let selectedDate = null;
         let editingActivityId = null;
@@ -828,7 +1015,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            renderCalendar();
+            checkLoginStatus();
         });
     </script>
 </body>
