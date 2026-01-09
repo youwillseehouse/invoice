@@ -296,6 +296,11 @@
             background: #f0fdf4;
         }
 
+        .activity-item.berjalan {
+            border-left-color: #4dabf7;
+            background: #f0f9ff;
+        }
+
         .activity-item.pending {
             border-left-color: #ffd43b;
             background: #fffbeb;
@@ -329,6 +334,11 @@
 
         .status-selesai {
             background: #51cf66;
+            color: white;
+        }
+
+        .status-berjalan {
+            background: #4dabf7;
             color: white;
         }
 
@@ -370,6 +380,14 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .recap-header > div {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .recap-stats {
@@ -436,7 +454,10 @@
             <div class="recap-section">
                 <div class="recap-header">
                     <h3>📊 Rekap Bulanan</h3>
-                    <button class="btn btn-primary" onclick="showAllActivities()">Lihat Semua Kegiatan</button>
+                    <div>
+                        <button class="btn btn-primary" onclick="showAllActivities()">Lihat Semua Kegiatan</button>
+                        <button class="btn btn-primary" onclick="downloadExcel()" style="background: #51cf66;">📥 Download Excel</button>
+                    </div>
                 </div>
                 <div class="recap-stats" id="recapStats"></div>
             </div>
@@ -463,6 +484,7 @@
                     <label>Status</label>
                     <select id="activityStatus">
                         <option value="pending">Pending</option>
+                        <option value="berjalan">Berjalan</option>
                         <option value="selesai">Selesai</option>
                         <option value="batal">Batal</option>
                     </select>
@@ -646,7 +668,7 @@
             const month = currentDate.getMonth();
             const data = JSON.parse(localStorage.getItem('workTimeline') || '{}');
             
-            let total = 0, selesai = 0, pending = 0, batal = 0;
+            let total = 0, selesai = 0, berjalan = 0, pending = 0, batal = 0;
             
             Object.keys(data).forEach(dateStr => {
                 const date = new Date(dateStr + 'T00:00:00');
@@ -654,6 +676,7 @@
                     data[dateStr].forEach(activity => {
                         total++;
                         if (activity.status === 'selesai') selesai++;
+                        else if (activity.status === 'berjalan') berjalan++;
                         else if (activity.status === 'pending') pending++;
                         else if (activity.status === 'batal') batal++;
                     });
@@ -668,6 +691,10 @@
                 <div class="stat-card">
                     <div class="stat-number" style="color: #51cf66;">${selesai}</div>
                     <div class="stat-label">Selesai</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #4dabf7;">${berjalan}</div>
+                    <div class="stat-label">Berjalan</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" style="color: #ffd43b;">${pending}</div>
@@ -733,6 +760,64 @@
         function nextMonth() {
             currentDate.setMonth(currentDate.getMonth() + 1);
             renderCalendar();
+        }
+
+        function downloadExcel() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const data = JSON.parse(localStorage.getItem('workTimeline') || '{}');
+            
+            // Kumpulkan semua kegiatan bulan ini
+            let allActivities = [];
+            Object.keys(data).forEach(dateStr => {
+                const date = new Date(dateStr + 'T00:00:00');
+                if (date.getMonth() === month && date.getFullYear() === year) {
+                    data[dateStr].forEach(activity => {
+                        allActivities.push({
+                            date: dateStr,
+                            ...activity
+                        });
+                    });
+                }
+            });
+
+            // Urutkan berdasarkan tanggal
+            allActivities.sort((a, b) => a.date.localeCompare(b.date));
+
+            // Buat CSV content
+            let csvContent = '\uFEFF'; // UTF-8 BOM untuk Excel
+            
+            // Header
+            csvContent += 'No,Tanggal,Judul Kegiatan,Keterangan,Status\n';
+            
+            // Data
+            allActivities.forEach((activity, index) => {
+                const date = new Date(activity.date + 'T00:00:00');
+                const formattedDate = `${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+                
+                // Escape dan bersihkan data untuk CSV
+                const title = (activity.title || '').replace(/"/g, '""');
+                const description = (activity.description || '').replace(/"/g, '""').replace(/\n/g, ' ');
+                const status = activity.status.toUpperCase();
+                
+                csvContent += `${index + 1},"${formattedDate}","${title}","${description}","${status}"\n`;
+            });
+
+            // Buat blob dan download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `Timeline_Kerja_${monthNames[month]}_${year}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Tampilkan notifikasi
+            alert(`Data berhasil didownload!\n\nTotal: ${allActivities.length} kegiatan\nFile: Timeline_Kerja_${monthNames[month]}_${year}.csv\n\nBuka file dengan Excel untuk melihat data tersusun rapi.`);
         }
 
         window.onclick = function(event) {
