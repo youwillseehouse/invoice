@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Form - Submit to Google Sheet</title>
+    <title>Timeline Kerja</title>
     <style>
         * {
             margin: 0;
@@ -13,231 +13,408 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
-            position: relative;
         }
 
-        body::before {
-            content: '';
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .controls button {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .controls button:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .current-month {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .calendar-container {
+            padding: 30px;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .day-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            color: #667eea;
+        }
+
+        .day {
+            aspect-ratio: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            background: white;
+        }
+
+        .day:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .day.other-month {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .day.other-month:hover {
+            border-color: #e0e0e0;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .day.today {
+            border-color: #ff6b6b;
+            background: #fff5f5;
+        }
+
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .day.has-activities {
+            background: #f0f7ff;
+            border-color: #667eea;
+        }
+
+        .activity-indicator {
+            font-size: 0.7em;
+            background: #667eea;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .modal {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: 
-                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.8) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(240, 242, 245, 0.6) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s;
         }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 24px;
-            box-shadow: 
-                0 8px 32px rgba(0, 0, 0, 0.08),
-                0 2px 8px rgba(0, 0, 0, 0.04),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            overflow: hidden;
-            position: relative;
-            z-index: 1;
-            border: 1px solid rgba(255, 255, 255, 0.5);
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        .header {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            color: #2c3e50;
-            padding: 40px 30px;
-            text-align: center;
-            border-bottom: 2px solid #e9ecef;
-            position: relative;
-        }
-
-        .header::before {
-            content: '';
+        .modal-content {
             position: absolute;
-            bottom: 0;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #3498db, transparent);
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s;
         }
 
-        .header h1 {
-            font-size: 32px;
-            margin-bottom: 10px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #2c3e50, #3498db);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        @keyframes slideIn {
+            from {
+                transform: translate(-50%, -60%);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%);
+                opacity: 1;
+            }
         }
 
-        .header p {
-            color: #7f8c8d;
-            font-size: 15px;
-            font-weight: 500;
-        }
-
-        .form-content {
-            padding: 40px;
-        }
-
-        .form-section {
-            margin-bottom: 30px;
-        }
-
-        .section-title {
-            font-size: 18px;
-            color: #2c3e50;
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #e9ecef;
-            font-weight: 700;
-            position: relative;
-            padding-left: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
         }
 
-        .section-title::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 4px;
-            background: linear-gradient(180deg, #3498db, #2ecc71);
-            border-radius: 2px;
+        .modal-header h2 {
+            color: #667eea;
         }
 
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+
+        .close-btn:hover {
+            color: #ff6b6b;
+        }
+
+        .activity-form {
             margin-bottom: 20px;
         }
 
         .form-group {
-            display: flex;
-            flex-direction: column;
+            margin-bottom: 15px;
         }
 
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-weight: 600;
-            margin-bottom: 8px;
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
             color: #333;
-            font-size: 14px;
         }
 
-        input, textarea, select {
-            padding: 12px 15px;
-            border: 2px solid #e9ecef;
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
             border-radius: 10px;
-            font-size: 14px;
-            transition: all 0.3s;
-            font-family: inherit;
-            background: #ffffff;
+            font-size: 1em;
+            transition: border-color 0.3s;
         }
 
-        input:focus, textarea:focus, select:focus {
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
             outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
-            background: #ffffff;
+            border-color: #667eea;
         }
 
-        input:hover, textarea:hover, select:hover {
-            border-color: #bdc3c7;
-        }
-
-        textarea {
+        .form-group textarea {
             resize: vertical;
             min-height: 80px;
         }
 
-        .btn-submit {
-            background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
-            color: white;
-            padding: 16px 40px;
+        .btn {
+            padding: 12px 24px;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 700;
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-            position: relative;
-            overflow: hidden;
+            font-size: 1em;
+            transition: all 0.3s;
+            margin-right: 10px;
         }
 
-        .btn-submit::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: left 0.5s;
+        .btn-primary {
+            background: #667eea;
+            color: white;
         }
 
-        .btn-submit:hover {
+        .btn-primary:hover {
+            background: #5568d3;
             transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(52, 152, 219, 0.4);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
-        .btn-submit:hover::before {
-            left: 100%;
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
         }
 
-        .btn-submit:active {
-            transform: translateY(0);
+        .btn-danger:hover {
+            background: #ee5a52;
         }
 
-        .status-message {
-            padding: 15px;
-            border-radius: 8px;
+        .activity-list {
             margin-top: 20px;
-            display: none;
-            font-weight: 500;
         }
 
-        .status-message.success {
-            background: linear-gradient(135deg, #d4edda, #c3e6cb);
-            color: #155724;
-            border: 2px solid #b1dfbb;
-            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2);
+        .activity-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
         }
 
-        .status-message.error {
-            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
-            color: #721c24;
-            border: 2px solid #f1aeb5;
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
+        .activity-item.selesai {
+            border-left-color: #51cf66;
+            background: #f0fdf4;
+        }
+
+        .activity-item.pending {
+            border-left-color: #ffd43b;
+            background: #fffbeb;
+        }
+
+        .activity-item.batal {
+            border-left-color: #ff6b6b;
+            background: #fff5f5;
+            opacity: 0.7;
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .activity-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .activity-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .status-selesai {
+            background: #51cf66;
+            color: white;
+        }
+
+        .status-pending {
+            background: #ffd43b;
+            color: #333;
+        }
+
+        .status-batal {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .activity-description {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .activity-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.9em;
+        }
+
+        .recap-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .recap-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .recap-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
         }
 
         @media (max-width: 768px) {
-            .form-content {
-                padding: 20px;
+            .calendar {
+                gap: 5px;
             }
 
-            .header h1 {
-                font-size: 24px;
+            .day {
+                padding: 5px;
+                font-size: 0.9em;
             }
 
-            .form-row {
-                grid-template-columns: 1fr;
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .activity-indicator {
+                font-size: 0.6em;
             }
         }
     </style>
@@ -245,240 +422,328 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📋 YOUWILLSEE.HOUSE</h1>
-            <p>Submit invoice data | ONLY ADMIN</p>
+            <h1>📅 Timeline Kerja</h1>
+            <div class="controls">
+                <button onclick="previousMonth()">← Bulan Sebelumnya</button>
+                <span class="current-month" id="currentMonth"></span>
+                <button onclick="nextMonth()">Bulan Berikutnya →</button>
+            </div>
         </div>
 
-        <div class="form-content">
-            <form id="invoiceForm">
-                <!-- Invoice Information -->
-                <div class="form-section">
-                    <h2 class="section-title">Invoice Information</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="noInvoice">No Invoice</label>
-                            <input type="text" id="noInvoice" name="noInvoice" readonly value="Akan di-generate otomatis" style="background: linear-gradient(135deg, #e8f4f8, #d4e9f7); cursor: not-allowed; font-weight: 600; color: #2c3e50; border: 2px solid #3498db;">
-                            <small style="color: #3498db; font-size: 12px; margin-top: 5px; display: block;">📋 Format: INV-001-YY/MM/DD</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="invoiceDate">Invoice Date *</label>
-                            <input type="date" id="invoiceDate" name="invoiceDate" required>
-                        </div>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="job">Job *</label>
-                        <input type="text" id="job" name="job" required placeholder="Project name or job description">
-                    </div>
+        <div class="calendar-container">
+            <div class="calendar" id="calendar"></div>
+
+            <div class="recap-section">
+                <div class="recap-header">
+                    <h3>📊 Rekap Bulanan</h3>
+                    <button class="btn btn-primary" onclick="showAllActivities()">Lihat Semua Kegiatan</button>
                 </div>
+                <div class="recap-stats" id="recapStats"></div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Client Information -->
-                <div class="form-section">
-                    <h2 class="section-title">Client Information</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="billTo">Bill To *</label>
-                            <input type="text" id="billTo" name="billTo" required placeholder="Client name">
-                        </div>
-                        <div class="form-group">
-                            <label for="phone">Phone/WA *</label>
-                            <input type="tel" id="phone" name="phone" required placeholder="+62 812-3456-7890">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="address">Address *</label>
-                            <textarea id="address" name="address" required placeholder="Full address"></textarea>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email *</label>
-                        <input type="email" id="email" name="email" required placeholder="client@email.com">
-                    </div>
+    <div class="modal" id="activityModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Kegiatan</h2>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+
+            <div class="activity-form">
+                <div class="form-group">
+                    <label>Judul Kegiatan</label>
+                    <input type="text" id="activityTitle" placeholder="Masukkan judul kegiatan">
                 </div>
-
-                <!-- Service Details -->
-                <div class="form-section">
-                    <h2 class="section-title">Service Details</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="item">Item *</label>
-                            <input list="itemOptions" id="item" name="item" required placeholder="Pilih atau ketik manual">
-                            <datalist id="itemOptions">
-                                <option value="PHOTO DOKUMENTASI">
-                                <option value="VIDEO DOKUMENTASI">
-                                <option value="PHOTO PRODUK">
-                                <option value="VIDEO PRODUK">
-                                <option value="VIDEO TEASER">
-                            </datalist>
-                        </div>
-                        <div class="form-group">
-                            <label for="session">Session *</label>
-                            <input type="number" id="session" name="session" required placeholder="1" min="1">
-                        </div>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="description">Description</label>
-                        <textarea id="description" name="description" placeholder="Additional details"></textarea>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="unitPrice">Unit Price (Rp) *</label>
-                            <input type="text" id="unitPrice" name="unitPrice" required placeholder="Rp 100.000">
-                        </div>
-                        <div class="form-group">
-                            <label for="discount">Discount (%)</label>
-                            <input type="number" id="discount" name="discount" placeholder="0" min="0" max="100" value="0">
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label>Keterangan</label>
+                    <textarea id="activityDescription" placeholder="Masukkan keterangan kegiatan"></textarea>
                 </div>
-
-                <!-- Payment Information -->
-                <div class="form-section">
-                    <h2 class="section-title">Payment Information</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="serviceCharge">Service Charge (%)</label>
-                            <input type="number" id="serviceCharge" name="serviceCharge" placeholder="0" min="0" max="100" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label for="dropPayment">Drop Payment *</label>
-                            <select id="dropPayment" name="dropPayment" required>
-                                <option value="">Select payment method</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Cash">Cash</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="E-Wallet">E-Wallet</option>
-                                <option value="PayPal">PayPal</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="dpUangMuka">DP / Uang Muka (Rp)</label>
-                            <input type="text" id="dpUangMuka" name="dpUangMuka" placeholder="Rp 0">
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="activityStatus">
+                        <option value="pending">Pending</option>
+                        <option value="selesai">Selesai</option>
+                        <option value="batal">Batal</option>
+                    </select>
                 </div>
+                <button class="btn btn-primary" onclick="saveActivity()">💾 Simpan Kegiatan</button>
+            </div>
 
-                <button type="submit" class="btn-submit">Submit Invoice</button>
-
-                <div id="statusMessage" class="status-message"></div>
-            </form>
+            <div class="activity-list" id="activityList"></div>
         </div>
     </div>
 
     <script>
-        const form = document.getElementById('invoiceForm');
-        const statusMessage = document.getElementById('statusMessage');
-        const unitPriceInput = document.getElementById('unitPrice');
-        const dpUangMukaInput = document.getElementById('dpUangMuka');
+        let currentDate = new Date();
+        let selectedDate = null;
+        let editingActivityId = null;
 
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXLj6tE3N2UzZVNSANtWbSMycxxy8sLiGYgWFSyVNxlpiiuMKd1mMRi4yFtzcGAA4O/exec';
+        const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+        const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                           'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-        // Function untuk format Rupiah
-        function formatRupiah(input) {
-            input.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/[^0-9]/g, '');
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            document.getElementById('currentMonth').textContent = 
+                `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+            let html = '';
+            
+            dayNames.forEach(day => {
+                html += `<div class="day-header">${day}</div>`;
+            });
+
+            for (let i = firstDay - 1; i >= 0; i--) {
+                html += `<div class="day other-month">
+                    <div class="day-number">${daysInPrevMonth - i}</div>
+                </div>`;
+            }
+
+            const today = new Date();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const activities = getActivities(dateStr);
+                const isToday = today.getDate() === day && 
+                               today.getMonth() === month && 
+                               today.getFullYear() === year;
                 
-                if (value) {
-                    value = parseInt(value).toLocaleString('id-ID');
-                    e.target.value = 'Rp ' + value;
-                }
-            });
+                html += `<div class="day ${isToday ? 'today' : ''} ${activities.length > 0 ? 'has-activities' : ''}" 
+                         onclick="openDay('${dateStr}')">
+                    <div class="day-number">${day}</div>
+                    ${activities.length > 0 ? `<div class="activity-indicator">${activities.length} kegiatan</div>` : ''}
+                </div>`;
+            }
 
-            input.addEventListener('focus', function(e) {
-                let value = e.target.value.replace(/[^0-9]/g, '');
-                e.target.value = value;
-            });
+            const remainingDays = 42 - (firstDay + daysInMonth);
+            for (let day = 1; day <= remainingDays; day++) {
+                html += `<div class="day other-month">
+                    <div class="day-number">${day}</div>
+                </div>`;
+            }
 
-            input.addEventListener('blur', function(e) {
-                let value = e.target.value.replace(/[^0-9]/g, '');
-                
-                if (value) {
-                    value = parseInt(value).toLocaleString('id-ID');
-                    e.target.value = 'Rp ' + value;
-                }
-            });
+            document.getElementById('calendar').innerHTML = html;
+            updateRecapStats();
         }
 
-        // Apply format Rupiah ke Unit Price dan DP
-        formatRupiah(unitPriceInput);
-        formatRupiah(dpUangMukaInput);
+        function getActivities(dateStr) {
+            const data = JSON.parse(localStorage.getItem('workTimeline') || '{}');
+            return data[dateStr] || [];
+        }
 
-        // Update nomor invoice saat tanggal dipilih
-        const invoiceDateInput = document.getElementById('invoiceDate');
-        const noInvoiceInput = document.getElementById('noInvoice');
+        function saveActivities(dateStr, activities) {
+            const data = JSON.parse(localStorage.getItem('workTimeline') || '{}');
+            data[dateStr] = activities;
+            localStorage.setItem('workTimeline', JSON.stringify(data));
+        }
 
-        invoiceDateInput.addEventListener('change', function() {
-            const date = new Date(this.value);
-            const year = String(date.getFullYear()).slice(-2);
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const dateFormat = `${year}/${month}/${day}`;
+        function openDay(dateStr) {
+            selectedDate = dateStr;
+            editingActivityId = null;
             
-            // Preview saja, nomor asli akan di-generate di server
-            const previewInvoice = `INV-[auto]-${dateFormat}`;
-            noInvoiceInput.value = previewInvoice;
-            noInvoiceInput.style.color = '#3498db';
-        });
+            const date = new Date(dateStr + 'T00:00:00');
+            document.getElementById('modalTitle').textContent = 
+                `Kegiatan - ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+            
+            document.getElementById('activityTitle').value = '';
+            document.getElementById('activityDescription').value = '';
+            document.getElementById('activityStatus').value = 'pending';
+            
+            renderActivityList();
+            document.getElementById('activityModal').style.display = 'block';
+        }
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        function closeModal() {
+            document.getElementById('activityModal').style.display = 'none';
+            renderCalendar();
+        }
 
-            // Collect form data (TANPA noInvoice, biar di-generate di server)
-            const formData = {
-                invoiceDate: document.getElementById('invoiceDate').value,
-                job: document.getElementById('job').value,
-                billTo: document.getElementById('billTo').value,
-                address: document.getElementById('address').value,
-                phone: document.getElementById('phone').value,
-                email: document.getElementById('email').value,
-                item: document.getElementById('item').value,
-                description: document.getElementById('description').value,
-                session: document.getElementById('session').value,
-                unitPrice: document.getElementById('unitPrice').value.replace(/[^0-9]/g, ''),
-                discount: document.getElementById('discount').value,
-                serviceCharge: document.getElementById('serviceCharge').value,
-                dpUangMuka: document.getElementById('dpUangMuka').value.replace(/[^0-9]/g, '') || '0',
-                dropPayment: document.getElementById('dropPayment').value
+        function saveActivity() {
+            const title = document.getElementById('activityTitle').value.trim();
+            if (!title) {
+                alert('Judul kegiatan harus diisi!');
+                return;
+            }
+
+            const activity = {
+                id: editingActivityId || Date.now().toString(),
+                title: title,
+                description: document.getElementById('activityDescription').value.trim(),
+                status: document.getElementById('activityStatus').value,
+                createdAt: editingActivityId ? undefined : new Date().toISOString()
             };
 
-            try {
-                // Show loading state
-                statusMessage.style.display = 'block';
-                statusMessage.className = 'status-message';
-                statusMessage.textContent = 'Submitting data...';
-
-                // Send to Google Sheet
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
-                });
-
-                // Show success message
-                statusMessage.className = 'status-message success';
-                statusMessage.textContent = '✓ Invoice submitted successfully!';
-                
-                // Reset form
-                form.reset();
-                noInvoiceInput.value = 'Akan di-generate otomatis';
-                noInvoiceInput.style.color = '#2c3e50';
-
-                // Hide message after 5 seconds
-                setTimeout(() => {
-                    statusMessage.style.display = 'none';
-                }, 5000);
-
-            } catch (error) {
-                // Show error message
-                statusMessage.className = 'status-message error';
-                statusMessage.textContent = '✗ Error submitting invoice. Please try again.';
-                console.error('Error:', error);
+            let activities = getActivities(selectedDate);
+            
+            if (editingActivityId) {
+                activities = activities.map(a => a.id === editingActivityId ? activity : a);
+            } else {
+                activities.push(activity);
             }
+
+            saveActivities(selectedDate, activities);
+            
+            document.getElementById('activityTitle').value = '';
+            document.getElementById('activityDescription').value = '';
+            document.getElementById('activityStatus').value = 'pending';
+            editingActivityId = null;
+            
+            renderActivityList();
+            renderCalendar();
+        }
+
+        function renderActivityList() {
+            const activities = getActivities(selectedDate);
+            const listHtml = activities.map(activity => `
+                <div class="activity-item ${activity.status}">
+                    <div class="activity-header">
+                        <div class="activity-title">${activity.title}</div>
+                        <span class="activity-status status-${activity.status}">${activity.status.toUpperCase()}</span>
+                    </div>
+                    ${activity.description ? `<div class="activity-description">${activity.description}</div>` : ''}
+                    <div class="activity-actions">
+                        <button class="btn btn-primary btn-small" onclick="editActivity('${activity.id}')">✏️ Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteActivity('${activity.id}')">🗑️ Hapus</button>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('activityList').innerHTML = activities.length > 0 ? 
+                listHtml : '<p style="text-align: center; color: #999;">Belum ada kegiatan</p>';
+        }
+
+        function editActivity(id) {
+            const activities = getActivities(selectedDate);
+            const activity = activities.find(a => a.id === id);
+            
+            if (activity) {
+                editingActivityId = id;
+                document.getElementById('activityTitle').value = activity.title;
+                document.getElementById('activityDescription').value = activity.description || '';
+                document.getElementById('activityStatus').value = activity.status;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function deleteActivity(id) {
+            if (confirm('Yakin ingin menghapus kegiatan ini?')) {
+                let activities = getActivities(selectedDate);
+                activities = activities.filter(a => a.id !== id);
+                saveActivities(selectedDate, activities);
+                renderActivityList();
+                renderCalendar();
+            }
+        }
+
+        function updateRecapStats() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const data = JSON.parse(localStorage.getItem('workTimeline') || '{}');
+            
+            let total = 0, selesai = 0, pending = 0, batal = 0;
+            
+            Object.keys(data).forEach(dateStr => {
+                const date = new Date(dateStr + 'T00:00:00');
+                if (date.getMonth() === month && date.getFullYear() === year) {
+                    data[dateStr].forEach(activity => {
+                        total++;
+                        if (activity.status === 'selesai') selesai++;
+                        else if (activity.status === 'pending') pending++;
+                        else if (activity.status === 'batal') batal++;
+                    });
+                }
+            });
+
+            document.getElementById('recapStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${total}</div>
+                    <div class="stat-label">Total Kegiatan</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #51cf66;">${selesai}</div>
+                    <div class="stat-label">Selesai</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #ffd43b;">${pending}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #ff6b6b;">${batal}</div>
+                    <div class="stat-label">Batal</div>
+                </div>
+            `;
+        }
+
+        function showAllActivities() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const data = JSON.parse(localStorage.getItem('workTimeline') || '{}');
+            
+            let allActivities = [];
+            Object.keys(data).forEach(dateStr => {
+                const date = new Date(dateStr + 'T00:00:00');
+                if (date.getMonth() === month && date.getFullYear() === year) {
+                    data[dateStr].forEach(activity => {
+                        allActivities.push({
+                            date: dateStr,
+                            ...activity
+                        });
+                    });
+                }
+            });
+
+            allActivities.sort((a, b) => a.date.localeCompare(b.date));
+
+            const listHtml = allActivities.map(activity => {
+                const date = new Date(activity.date + 'T00:00:00');
+                return `
+                    <div class="activity-item ${activity.status}">
+                        <div class="activity-header">
+                            <div>
+                                <div class="activity-title">${activity.title}</div>
+                                <small style="color: #999;">${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}</small>
+                            </div>
+                            <span class="activity-status status-${activity.status}">${activity.status.toUpperCase()}</span>
+                        </div>
+                        ${activity.description ? `<div class="activity-description">${activity.description}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            selectedDate = null;
+            document.getElementById('modalTitle').textContent = 
+                `Semua Kegiatan - ${monthNames[month]} ${year}`;
+            document.getElementById('activityList').innerHTML = allActivities.length > 0 ? 
+                listHtml : '<p style="text-align: center; color: #999;">Belum ada kegiatan bulan ini</p>';
+            document.querySelector('.activity-form').style.display = 'none';
+            document.getElementById('activityModal').style.display = 'block';
+        }
+
+        function previousMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('activityModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCalendar();
         });
     </script>
 </body>
